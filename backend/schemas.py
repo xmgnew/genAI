@@ -35,9 +35,18 @@ class MealInput(BaseModel):
     description: str
 
 
+class UserProfile(BaseModel):
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
+    age_range: Optional[str] = None
+    activity_level: Optional[str] = None
+
+
 class CompareMealsRequest(BaseModel):
     meal_a: MealInput
     meal_b: MealInput
+    goal: str = "general_wellness"
+    user_profile: Optional[UserProfile] = None
     focus: Optional[str] = None
 
 
@@ -72,6 +81,8 @@ class DailyGoals(BaseModel):
 class DailyNutritionRequest(BaseModel):
     date: Optional[str] = None
     meals: List[DailyMealInput]
+    goal: str = "general_wellness"
+    user_profile: Optional[UserProfile] = None
     goals: Optional[DailyGoals] = None
 
 
