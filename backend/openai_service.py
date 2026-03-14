@@ -390,58 +390,73 @@ def analyze_food(
 
     Rules:
 
-    - meal_name: 2 to 5 words only
-    - summary: 1 short sentence, maximum 16 words
+    meal_name:
+    - 2 to 5 words only
 
-    Nutrition focus:
-    Evaluate the meal based on calories, protein, fiber, sugar, sodium, and overall balance.
+    summary:
+    - 1 short sentence
+    - maximum 16 words
+
+    Nutrition evaluation:
+    Assess the meal based on calories, protein, fiber, sugar, sodium, and overall balance.
 
     ingredients:
     - maximum 4 items
-    - estimated_amount must be a short phrase only
+    - estimated_amount must be a short phrase
 
     health_signals:
-    Return exactly 2 signals that highlight the most important nutrition insights.
+    Return exactly 4 short nutrition insights.
+
+    Each signal must:
+    - be a short phrase (maximum 6 words)
+    - highlight nutrition quality or preventive health relevance
+    - describe a different nutrition aspect
+
     Examples:
     - high sodium exposure
-    - good protein support
-    - low fiber content
-    - balanced macro profile
-    - must refer only to nutrition quality or diet balance
-
-    health_signals must ONLY refer to nutrition quality or preventive health relevance.
+    - strong protein content
+    - low fiber level
+    - moderate calorie density
 
     Do NOT include:
-    - cooking safety
-    - temperature checks
-    - kitchen instructions
-    - storage advice
+    - cooking advice
+    - food safety checks
+    - preparation instructions
+    - storage guidance
+    - temperature suggestions
 
     next_best_actions:
-    - Return exactly 2 short dietary actions that help improve nutrition quality.
-    - must be a dietary improvement for the next meal
+    Return exactly 4 short dietary improvement actions.
+
+    Each action must:
+    - be a short phrase (maximum 8 words)
+    - describe a realistic nutrition improvement
+    - be different from the others
 
     Examples:
     - add a fiber-rich side
     - reduce salty sauces
     - increase vegetables
-    - replace sugary drinks with water
+    - choose whole grain options
 
-    Actions must be:
-    - nutrition-related
-    - actionable for the next meal
+    Actions must relate only to:
+    - nutrition quality
+    - diet balance
+    - sodium / sugar / fiber / protein improvements
 
     confidence:
-    Number between 0 and 1
+    Number between 0 and 1.
 
     disclaimer:
     1 short sentence acknowledging estimation uncertainty.
 
-    All text must be concise and frontend-friendly.
+    Important:
+    Only include insights directly related to nutrition quality or dietary improvement.
+    Ignore food safety, cooking technique, or kitchen handling advice.
+
+    Keep all outputs concise and frontend-friendly.
     Do not use markdown.
     Do not diagnose diseases.
-    
-    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
     """.strip()
 
     return _structured_response(
@@ -474,39 +489,53 @@ def compare_meals(request: CompareMealsRequest) -> CompareMealsResponse:
     Description: {request.meal_b.description}
 
     Choose a winner only if the nutrition advantage is meaningful.
+    Otherwise return tie.
 
     Evaluation criteria:
+    - calories
     - protein quality
-    - fiber content
+    - fiber level
     - sodium level
     - overall nutrition balance
 
     Rules:
 
+    winner:
+    - choose meal_a, meal_b, or tie
+
     verdict:
-    1 sentence, maximum 18 words.
+    - 1 short sentence
+    - maximum 16 words
 
     recommendation:
-    1 short sentence explaining the better choice.
+    - 1 short sentence
+    - maximum 16 words
+    - explain the better choice
 
     scorecard:
-    Exactly 4 categories:
+    Return exactly 4 categories:
     - Calories
     - Protein
     - Fiber
     - Overall balance
 
-    Each scorecard field must be short and UI-friendly.
+    Each scorecard field must:
+    - be a short phrase
+    - maximum 6 words
+    - clearly compare nutrition quality
 
     tradeoffs:
     Return exactly 2 short nutrition tradeoffs.
 
-    Focus ONLY on nutrition quality and preventive health impact.
+    Examples:
+    - higher calories but more protein
+    - lower sodium but less fiber
 
     Do NOT include:
-    - cooking safety
+    - cooking advice
+    - food safety checks
+    - storage guidance
     - preparation instructions
-    - storage advice
 
     disclaimer:
     1 short sentence acknowledging estimation uncertainty.
@@ -514,8 +543,6 @@ def compare_meals(request: CompareMealsRequest) -> CompareMealsResponse:
     Keep all text concise and frontend-friendly.
     Do not use markdown.
     Do not diagnose diseases.
-    
-    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
     """.strip()
 
     return _structured_response(
@@ -539,9 +566,9 @@ def daily_nutrition(request: DailyNutritionRequest) -> DailyNutritionResponse:
     user_context = _build_user_context(request.goal, request.user_profile)
 
     prompt = f"""
-    You are NutriLens, an AI nutrition monitoring assistant focused on preventive health.
+    You are NutriLens, an AI nutrition monitoring assistant focused on preventive physical health.
 
-    Summarize this full day of eating and identify the most important nutrition pattern.
+    Analyze this full day of eating and identify the most important nutrition patterns.
 
     {user_context}
 
@@ -554,39 +581,62 @@ def daily_nutrition(request: DailyNutritionRequest) -> DailyNutritionResponse:
     Focus on:
     - nutrition balance
     - preventive health relevance
-    - next dietary improvement
+    - realistic dietary improvements
 
     Rules:
 
     day_summary:
-    1 short sentence, maximum 18 words.
+    - 1 short sentence
+    - maximum 18 words
 
     primary_risk_flag:
-    1 short phrase identifying the most important nutrition concern.
+    Return the single most important nutrition concern.
+
     Examples:
     - low fiber intake
     - high sodium exposure
     - high added sugar pattern
 
     prevention_focus:
-    1 short phrase describing the key nutrition improvement focus.
+    1 short phrase describing the key improvement focus.
+
+    Examples:
+    - increase dietary fiber
+    - reduce sodium intake
+    - balance daily macronutrients
 
     next_best_intervention:
     1 short actionable dietary change for the next day.
+    Maximum 12 words.
 
     meals:
     Each meal must include:
     - estimated nutrition
-    - takeaway with maximum 12 words
+    - takeaway with maximum 10 words
 
     highlights:
-    Exactly 2 positive nutrition signals.
+    Return exactly 3 positive nutrition insights.
+
+    Examples:
+    - strong protein intake
+    - balanced lunch composition
+    - moderate calorie distribution
 
     gaps:
-    Exactly 2 nutrition gaps.
+    Return exactly 3 nutrition gaps.
+
+    Examples:
+    - low fiber intake
+    - elevated sodium consumption
+    - low vegetable intake
 
     action_plan:
-    Exactly 2 simple dietary improvements.
+    Return exactly 3 simple dietary improvements.
+
+    Examples:
+    - add beans or whole grains
+    - reduce salty sauces
+    - increase vegetable portions
 
     hydration_tip:
     1 short sentence.
@@ -594,19 +644,18 @@ def daily_nutrition(request: DailyNutritionRequest) -> DailyNutritionResponse:
     overall_score:
     Integer from 1 to 100 reflecting overall nutrition balance.
 
-    Important:
-    Focus ONLY on nutrition patterns and preventive health relevance.
-
     Do NOT include:
     - cooking instructions
     - food safety advice
     - storage guidance
-    - general lifestyle advice unrelated to nutrition
+    - kitchen preparation suggestions
 
-    Keep responses concise, practical, and UI-friendly.
-    Do not diagnose disease.
-    
-    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
+    disclaimer:
+    1 short sentence acknowledging estimation uncertainty.
+
+    Keep all outputs concise and frontend-friendly.
+    Do not use markdown.
+    Do not diagnose diseases.
     """.strip()
 
     return _structured_response(
