@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-mesh text-ink antialiased;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+::selection {
+  background: rgba(201, 243, 107, 0.55);
+}
+
+.glass-panel {
+  @apply rounded-[28px] border border-white/60 bg-white/80 shadow-panel backdrop-blur-xl;
+}
+
+.field-label {
+  @apply mb-2 block text-sm font-semibold uppercase tracking-[0.18em] text-ink/60;
+}
+
+.field-input {
+  @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-ocean focus:ring-4 focus:ring-ocean/10;
+}
+
+.primary-button {
+  @apply inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.secondary-button {
+  @apply inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-ink;
+}
+
+.status-chip {
+  @apply inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/65;
+}
