@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+
 const links = [
   { href: "/", label: "Home" },
   { href: "/analyze-food", label: "Analyze Food" },
   { href: "/compare-meals", label: "Compare Meals" },
   { href: "/daily-nutrition", label: "Daily Nutrition" },
+  { href: "/bio-data", label: "Bio Data"}
 ];
 
 export function NavBar() {
