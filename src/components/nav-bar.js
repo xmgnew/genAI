@@ -7,7 +7,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/analyze-food", label: "Analyze Food" },
   { href: "/compare-meals", label: "Compare Meals" },
-  { href: "/daily-nutrition", label: "Daily Monitoring" },
+  { href: "/daily-nutrition", label: "Daily Nutrition" },
 ];
 
 export function NavBar() {
@@ -21,6 +21,9 @@ export function NavBar() {
             N
           </div>
           <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">
+              Hackathon MVP
+            </p>
             <p className="text-lg font-semibold text-ink">NutriLens</p>
           </div>
         </Link>
