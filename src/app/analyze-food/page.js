@@ -100,7 +100,7 @@ export default function AnalyzeFoodPage() {
         disclaimer="Nutrition estimates are generated from image analysis and may vary based on ingredients, portion size, and preparation method. For informational purposes only — not medical or dietary advice."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_minmax(0,1fr)]">
         <form onSubmit={handleSubmit} className="glass-panel space-y-6 px-6 py-6">
           <div>
             <label className="field-label" htmlFor="image">
