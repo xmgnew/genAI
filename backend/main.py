@@ -5,7 +5,13 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.openai_service import analyze_food, compare_meals, daily_nutrition, image_bytes_to_data_url
-from backend.schemas import AnalyzeFoodResponse, CompareMealsRequest, CompareMealsResponse, DailyNutritionRequest, DailyNutritionResponse
+from backend.schemas import (
+    AnalyzeFoodResponse,
+    CompareMealsRequest,
+    CompareMealsResponse,
+    DailyNutritionRequest,
+    DailyNutritionResponse,
+)
 
 
 app = FastAPI(
@@ -34,7 +40,11 @@ async def health_check():
 async def analyze_food_route(
     image: UploadFile = File(...),
     notes: str = Form(default=""),
-    goal: str = Form(default=""),
+    goal: str = Form(default="general_wellness"),
+    height_cm: float | None = Form(default=None),
+    weight_kg: float | None = Form(default=None),
+    age_range: str | None = Form(default=None),
+    activity_level: str | None = Form(default=None),
 ):
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="The uploaded file must be an image.")
@@ -52,7 +62,23 @@ async def analyze_food_route(
     if "/" not in mime_type:
         mime_type = f"image/{sniffed_type}"
 
-    return analyze_food(image_bytes_to_data_url(raw_bytes, mime_type), notes, goal)
+    user_profile = {
+        key: value
+        for key, value in {
+            "height_cm": height_cm,
+            "weight_kg": weight_kg,
+            "age_range": age_range,
+            "activity_level": activity_level,
+        }.items()
+        if value is not None and value != ""
+    }
+
+    return analyze_food(
+        image_bytes_to_data_url(raw_bytes, mime_type),
+        notes,
+        goal,
+        user_profile or None,
+    )
 
 
 @app.post("/compare-meals", response_model=CompareMealsResponse)
