@@ -57,7 +57,15 @@ export default function CompareMealsPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <form onSubmit={handleSubmit} className="glass-panel space-y-6 px-6 py-6">
+        <form onSubmit={handleSubmit} className="glass-panel spotlight-card space-y-6 px-6 py-6" data-click-fx>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="story-kicker">Decision setup</p>
+              <p className="mt-2 text-2xl font-semibold text-ink">Head-to-head prompt</p>
+            </div>
+            <span className="status-chip">Meal A vs Meal B</span>
+          </div>
+
           <div>
             <label className="field-label" htmlFor="focus">
               Decision focus
@@ -73,7 +81,7 @@ export default function CompareMealsPage() {
 
           <div className="grid gap-5 lg:grid-cols-2">
             {["meal_a", "meal_b"].map((mealKey, index) => (
-              <div key={mealKey} className="rounded-[26px] border border-slate-200 bg-white p-4">
+              <div key={mealKey} className="metric-card">
                 <label className="field-label" htmlFor={`${mealKey}-name`}>
                   {index === 0 ? "Meal A name" : "Meal B name"}
                 </label>
@@ -100,13 +108,13 @@ export default function CompareMealsPage() {
 
           {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
-          <button type="submit" className="primary-button w-full" disabled={isLoading}>
+          <button type="submit" className="primary-button w-full" disabled={isLoading} data-click-fx>
             {isLoading ? "Comparing meals..." : "Compare meals"}
           </button>
         </form>
 
         <div className="space-y-6">
-          <div className="glass-panel px-6 py-6">
+          <div className="glass-panel spotlight-card px-6 py-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="status-chip">Comparison result</span>
               {result ? (
@@ -124,14 +132,14 @@ export default function CompareMealsPage() {
                 </div>
                 <div className="grid gap-3">
                   {result.scorecard.map((item) => (
-                    <div key={item.category} className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                    <div key={item.category} className="metric-card">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">{item.category}</p>
                         <span className="status-chip">{item.winner}</span>
                       </div>
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <div className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/72">{item.meal_a}</div>
-                        <div className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/72">{item.meal_b}</div>
+                        <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-ink/72">{item.meal_a}</div>
+                        <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-ink/72">{item.meal_b}</div>
                       </div>
                     </div>
                   ))}
@@ -140,7 +148,7 @@ export default function CompareMealsPage() {
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Tradeoffs</p>
                   <ul className="mt-3 space-y-2">
                     {result.tradeoffs.map((item) => (
-                      <li key={item} className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/75">
+                      <li key={item} className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-ink/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
                         {item}
                       </li>
                     ))}

@@ -4,6 +4,16 @@
 
 :root {
   color-scheme: light;
+  --paper: #f7f2e8;
+  --paper-strong: #fffaf1;
+  --ink-base: #0d1b2a;
+  --ink-soft: #314055;
+  --line: rgba(13, 27, 42, 0.12);
+  --line-strong: rgba(13, 27, 42, 0.18);
+  --lime: #d7ff64;
+  --aqua: #72d4ff;
+  --coral-pop: #ff916d;
+  --navy: #101826;
 }
 
 html {
@@ -11,41 +21,353 @@ html {
 }
 
 body {
-  @apply bg-mesh text-ink antialiased;
-  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  min-height: 100vh;
+  color: var(--ink-base);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle at top left, rgba(215, 255, 100, 0.34), transparent 24%),
+    radial-gradient(circle at 88% 14%, rgba(114, 212, 255, 0.28), transparent 22%),
+    radial-gradient(circle at 20% 80%, rgba(255, 145, 109, 0.16), transparent 20%),
+    linear-gradient(180deg, #fbf7ef 0%, #f0f3f8 54%, #eef2f8 100%);
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  background-image:
+    linear-gradient(rgba(13, 27, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13, 27, 42, 0.035) 1px, transparent 1px);
+  background-size: 78px 78px;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.45), transparent 88%);
+}
+
+body::after {
+  background:
+    radial-gradient(circle at var(--pointer-x, 50%) var(--pointer-y, 20%), rgba(215, 255, 100, 0.18), transparent 16%),
+    radial-gradient(circle at calc(var(--pointer-x, 50%) + 8%) calc(var(--pointer-y, 20%) + 6%), rgba(114, 212, 255, 0.12), transparent 18%);
+  transition: background-position 120ms ease-out;
 }
 
 h1,
 h2,
 h3,
 h4 {
-  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+  font-family: "Fraunces", "Iowan Old Style", "Palatino Linotype", serif;
+  letter-spacing: -0.04em;
+}
+
+p {
+  color: var(--ink-soft);
 }
 
 ::selection {
-  background: rgba(201, 243, 107, 0.55);
+  background: rgba(215, 255, 100, 0.72);
+}
+
+@keyframes routeEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+    filter: blur(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes panelPulse {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes ribbonShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes rippleBurst {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(18);
+    opacity: 0;
+  }
+}
+
+@keyframes riseIn {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.route-enter {
+  animation: routeEnter 720ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.route-enter > * {
+  animation: riseIn 680ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.route-enter > *:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.route-enter > *:nth-child(3) {
+  animation-delay: 120ms;
 }
 
 .glass-panel {
-  @apply rounded-[28px] border border-white/60 bg-white/80 shadow-panel backdrop-blur-xl;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(245, 248, 255, 0.72)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.12));
+  box-shadow:
+    0 28px 80px rgba(13, 27, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  transition:
+    transform 240ms ease,
+    box-shadow 240ms ease,
+    border-color 240ms ease;
+}
+
+.glass-panel::before,
+.glass-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.glass-panel::before {
+  background:
+    radial-gradient(circle at top right, rgba(215, 255, 100, 0.22), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(114, 212, 255, 0.14), transparent 30%);
+  z-index: -2;
+}
+
+.glass-panel::after {
+  inset: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  z-index: -1;
+}
+
+.glass-panel:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 36px 90px rgba(13, 27, 42, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.glass-panel-dark {
+  background:
+    linear-gradient(150deg, rgba(16, 24, 38, 0.96), rgba(18, 28, 42, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent);
+  border: 1px solid rgba(130, 191, 255, 0.14);
+  box-shadow:
+    0 34px 90px rgba(10, 18, 28, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-dark::before {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(215, 255, 100, 0.15), transparent 24%),
+    radial-gradient(circle at 100% 0%, rgba(114, 212, 255, 0.22), transparent 30%),
+    radial-gradient(circle at 0% 100%, rgba(255, 145, 109, 0.16), transparent 26%);
 }
 
 .field-label {
-  @apply mb-2 block text-sm font-semibold uppercase tracking-[0.18em] text-ink/60;
+  @apply mb-2 block text-sm font-semibold uppercase tracking-[0.22em] text-ink/60;
 }
 
 .field-input {
-  @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-ocean focus:ring-4 focus:ring-ocean/10;
+  @apply w-full rounded-[22px] border px-4 py-3 text-sm text-ink outline-none transition;
+  border-color: rgba(13, 27, 42, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.field-input:hover {
+  border-color: rgba(13, 27, 42, 0.18);
+}
+
+.field-input:focus {
+  border-color: rgba(114, 212, 255, 0.7);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 0 0 6px rgba(114, 212, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.primary-button,
+.secondary-button,
+.fx-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 .primary-button {
-  @apply inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold text-ink transition disabled:cursor-not-allowed disabled:opacity-60;
+  border: 1px solid rgba(13, 27, 42, 0.08);
+  background: linear-gradient(135deg, #d7ff64 0%, #72d4ff 100%);
+  box-shadow:
+    0 18px 40px rgba(114, 212, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.primary-button::before,
+.secondary-button::before,
+.nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 10%, rgba(255, 255, 255, 0.48) 48%, transparent 86%);
+  transform: translateX(-130%);
+  transition: transform 520ms ease;
+  pointer-events: none;
+}
+
+.primary-button:hover,
+.secondary-button:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.primary-button:hover::before,
+.secondary-button:hover::before,
+.nav-link:hover::before {
+  transform: translateX(130%);
 }
 
 .secondary-button {
-  @apply inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-ink;
+  @apply inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold text-ink transition;
+  border: 1px solid rgba(13, 27, 42, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .status-chip {
-  @apply inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/65;
+  @apply inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em];
+  border: 1px solid rgba(13, 27, 42, 0.08);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.42)),
+    linear-gradient(90deg, rgba(215, 255, 100, 0.42), rgba(114, 212, 255, 0.28));
+  color: rgba(13, 27, 42, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.nav-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-shell::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -1px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(215, 255, 100, 0), rgba(215, 255, 100, 0.82), rgba(114, 212, 255, 0.82), rgba(255, 145, 109, 0));
+  background-size: 180% 180%;
+  animation: ribbonShift 9s linear infinite;
+}
+
+.nav-link {
+  @apply rounded-full px-4 py-2 text-sm font-semibold transition;
+  color: rgba(13, 27, 42, 0.7);
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(13, 27, 42, 1);
+}
+
+.nav-link-active {
+  color: rgba(13, 27, 42, 1);
+  background: linear-gradient(135deg, rgba(215, 255, 100, 0.62), rgba(114, 212, 255, 0.34));
+  box-shadow:
+    0 12px 30px rgba(114, 212, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.module-orbit {
+  animation: panelPulse 9s ease-in-out infinite;
+}
+
+.metric-card {
+  @apply rounded-[26px] border p-4;
+  border-color: rgba(13, 27, 42, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background:
+    radial-gradient(circle at var(--spot-x, 30%) var(--spot-y, 20%), rgba(255, 255, 255, 0.54), transparent 18%),
+    radial-gradient(circle at 80% 10%, rgba(215, 255, 100, 0.24), transparent 20%);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.fx-ripple {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(114, 212, 255, 0.65) 42%, rgba(114, 212, 255, 0) 72%);
+  transform: translate(-50%, -50%) scale(0);
+  animation: rippleBurst 780ms cubic-bezier(0.2, 1, 0.22, 1) forwards;
+}
+
+.story-kicker {
+  @apply text-sm font-semibold uppercase tracking-[0.28em];
+  color: rgba(13, 27, 42, 0.46);
+}
+
+.editorial-rule {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(13, 27, 42, 0), rgba(13, 27, 42, 0.16), rgba(13, 27, 42, 0));
 }

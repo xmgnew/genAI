@@ -61,7 +61,15 @@ export default function DailyNutritionPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-        <form onSubmit={handleSubmit} className="glass-panel space-y-6 px-6 py-6">
+        <form onSubmit={handleSubmit} className="glass-panel spotlight-card space-y-6 px-6 py-6" data-click-fx>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="story-kicker">Timeline builder</p>
+              <p className="mt-2 text-2xl font-semibold text-ink">Daily intake log</p>
+            </div>
+            <span className="status-chip">Meals across the day</span>
+          </div>
+
           <div className="grid gap-5 md:grid-cols-3">
             <div>
               <label className="field-label" htmlFor="date">
@@ -113,12 +121,12 @@ export default function DailyNutritionPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="field-label mb-0">Meals</span>
-              <button type="button" className="secondary-button" onClick={addMeal}>
+              <button type="button" className="secondary-button" onClick={addMeal} data-click-fx>
                 Add meal
               </button>
             </div>
             {meals.map((meal, index) => (
-              <div key={`${meal.name}-${index}`} className="rounded-[26px] border border-slate-200 bg-white p-4">
+              <div key={`${meal.name}-${index}`} className="metric-card">
                 <div className="grid gap-4 md:grid-cols-[1fr_160px]">
                   <div>
                     <label className="field-label" htmlFor={`meal-name-${index}`}>
@@ -163,13 +171,13 @@ export default function DailyNutritionPage() {
 
           {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
-          <button type="submit" className="primary-button w-full" disabled={isLoading}>
+          <button type="submit" className="primary-button w-full" disabled={isLoading} data-click-fx>
             {isLoading ? "Summarizing day..." : "Generate daily summary"}
           </button>
         </form>
 
         <div className="space-y-6">
-          <div className="glass-panel px-6 py-6">
+          <div className="glass-panel spotlight-card px-6 py-6">
             <div className="flex items-center justify-between">
               <span className="status-chip">Daily summary</span>
               {result ? <span className="status-chip">Score {result.overall_score}/100</span> : null}
@@ -182,7 +190,7 @@ export default function DailyNutritionPage() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {Object.entries(result.total_estimated_nutrition).map(([key, value]) => (
-                    <div key={key} className="rounded-3xl bg-slate-50 p-4">
+                    <div key={key} className="metric-card">
                       <p className="text-xs uppercase tracking-[0.16em] text-ink/50">{key.replaceAll("_", " ")}</p>
                       <p className="mt-2 text-2xl font-semibold">{value}</p>
                     </div>
@@ -193,7 +201,7 @@ export default function DailyNutritionPage() {
                     <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Highlights</p>
                     <ul className="mt-3 space-y-2">
                       {result.highlights.map((item) => (
-                        <li key={item} className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/75">
+                        <li key={item} className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-ink/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
                           {item}
                         </li>
                       ))}
@@ -203,7 +211,7 @@ export default function DailyNutritionPage() {
                     <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Gaps</p>
                     <ul className="mt-3 space-y-2">
                       {result.gaps.map((item) => (
-                        <li key={item} className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/75">
+                        <li key={item} className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-ink/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
                           {item}
                         </li>
                       ))}
@@ -213,7 +221,7 @@ export default function DailyNutritionPage() {
                     <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Action plan</p>
                     <ul className="mt-3 space-y-2">
                       {result.action_plan.map((item) => (
-                        <li key={item} className="rounded-2xl bg-mint/25 px-4 py-3 text-sm text-ink/75">
+                        <li key={item} className="rounded-2xl bg-gradient-to-r from-mint/30 to-ocean/18 px-4 py-3 text-sm text-ink/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
                           {item}
                         </li>
                       ))}
