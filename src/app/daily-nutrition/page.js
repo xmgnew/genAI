@@ -253,8 +253,6 @@ export default function DailyNutritionPage() {
               </p>
             )}
           </div>
-
-          <JsonPanel title="Raw JSON response" data={result} />
         </div>
       </div>
     </div>
