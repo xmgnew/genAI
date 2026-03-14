@@ -177,7 +177,7 @@ export default function AnalyzeFoodPage() {
           </button>
         </form>
 
-    <div className="glass-panel flex h-full flex-col px-6 py-6">
+    <div className="glass-panel min-w-0 max-h-[797px] overflow-y-auto px-6 py-6">
       <div>
     <div className="flex items-center justify-between">
       <span className="field-label">Nutrition snapshot</span>
@@ -251,7 +251,7 @@ export default function AnalyzeFoodPage() {
 
 
 <div className="min-w-0 space-y-6">
-  <div className="glass-panel px-6 py-6">
+  <div className="glass-panel min-w-0 h-[797px] overflow-y-auto px-6 py-6"> 
     <span className="field-label">Coaching signals</span>
 
     {result ? (
