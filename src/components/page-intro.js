@@ -1,4 +1,4 @@
-export function PageIntro({ eyebrow, title, description }) {
+export function PageIntro({ eyebrow, title, description, disclaimer }) {
   return (
     <section className="glass-panel px-6 py-8 sm:px-8">
       <span className="status-chip">{eyebrow}</span>
