@@ -1,6 +1,14 @@
 # NutriLens
 
-NutriLens is a fullstack hackathon MVP for AI-assisted nutrition decisions.
+NutriLens is an agentic AI nutrition copilot that helps Canadians monitor daily nutrition, detect preventive health risks, and take the next best action toward better physical health.
+
+Built for the Sun Life healthcare hack category, NutriLens frames nutrition as a preventive-health signal and an opportunity for timely intervention.
+
+## Product modules
+
+- `Analyze Food`: convert a meal image into a concise nutrition monitoring update
+- `Compare Meals`: compare two options and recommend the stronger preventive-health choice
+- `Daily Monitoring`: summarize the day, surface the main risk pattern, and suggest the next best intervention
 
 ## Stack
 
@@ -54,5 +62,6 @@ The frontend runs on `http://localhost:3000` and expects the API on `http://127.
 ## Notes
 
 - `POST /analyze-food` accepts `multipart/form-data` with `image`, `notes`, and `goal`.
-- The backend uses OpenAI structured JSON output so the UI can render stable response shapes.
+- The backend uses OpenAI structured JSON output so the UI can render stable, agent-friendly response shapes.
+- The product copy is centered on nutrition monitoring, preventive health, and next best intervention.
 - Nutrition values are estimates and should not be treated as medical advice.

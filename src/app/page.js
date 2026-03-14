@@ -3,26 +3,26 @@ import Link from "next/link";
 const featureCards = [
   {
     title: "Analyze Food",
-    description: "Upload a meal image and get estimated macros, ingredients, and practical next steps.",
+    description: "Turn a meal image into a concise nutrition monitoring update with practical next-step guidance.",
     href: "/analyze-food",
   },
   {
     title: "Compare Meals",
-    description: "Put two meal options head to head across protein, fiber, satiety, and overall balance.",
+    description: "Compare two meal options through a preventive-health lens and surface the stronger choice.",
     href: "/compare-meals",
   },
   {
-    title: "Daily Nutrition",
-    description: "Roll up your day into a clear nutrition summary with highlights, gaps, and action items.",
+    title: "Daily Monitoring",
+    description: "Monitor a full day of nutrition, detect the main risk pattern, and recommend the next best intervention.",
     href: "/daily-nutrition",
   },
 ];
 
 const highlights = [
-  "Structured JSON outputs designed for product integration",
-  "Image-aware food analysis through the OpenAI API",
-  "Fast comparison workflows for indecisive meal choices",
-  "A modern UI that reads like a polished hackathon demo, not a form dump",
+  "Agentic AI workflows that move from monitoring to action",
+  "Preventive-health framing designed for concise daily decisions",
+  "Structured JSON outputs that keep every module stable in a demo",
+  "A polished interface built for fast healthcare hack judging",
 ];
 
 export default function HomePage() {
@@ -31,19 +31,19 @@ export default function HomePage() {
       <section className="glass-panel overflow-hidden px-6 py-8 sm:px-10 sm:py-12">
         <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
           <div className="space-y-6">
-            <span className="status-chip">AI Nutrition Decision Copilot</span>
+            <span className="status-chip">Agentic AI Nutrition Copilot</span>
             <div className="space-y-4">
               <h1 className="max-w-3xl text-5xl leading-none sm:text-6xl">
-                NutriLens helps people decide what to eat with evidence-backed AI estimates.
+                NutriLens helps Canadians monitor nutrition, detect preventive health risks, and take the next best action.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-ink/72">
-                Built for speed: upload a food image, compare two meals, or summarize an entire day.
-                Every flow is backed by structured JSON from the backend so the product can scale beyond a demo.
+                NutriLens is an agentic AI nutrition copilot that helps Canadians monitor daily nutrition, detect
+                preventive health risks, and take the next best action toward better physical health.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link href="/analyze-food" className="primary-button">
-                Start analyzing
+                Start monitoring
               </Link>
               <Link href="/compare-meals" className="secondary-button">
                 Compare meals
@@ -59,19 +59,26 @@ export default function HomePage() {
             </div>
             <div className="space-y-4">
               <div className="rounded-3xl bg-white/8 p-4">
-                <p className="text-sm text-white/65">Best lunch pick</p>
-                <p className="mt-2 text-2xl font-semibold">Grain bowl with salmon</p>
+                <p className="text-sm text-white/65">Primary risk flag</p>
+                <p className="mt-2 text-2xl font-semibold">Late-day sodium and low produce intake</p>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  The pattern is manageable, but it points to an avoidable drift in meal quality across the day.
+                </p>
+              </div>
+              <div className="rounded-3xl bg-white/8 p-4">
+                <p className="text-sm text-white/65">Next best intervention</p>
+                <p className="mt-2 text-2xl font-semibold">Choose the salmon grain bowl</p>
                 <p className="mt-2 text-sm leading-6 text-white/70">
                   Higher protein density, lower sodium load, and better fiber than the fried wrap alternative.
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-3xl bg-white/8 p-4">
-                  <p className="text-sm text-white/65">Estimated energy</p>
-                  <p className="mt-2 text-3xl font-semibold">1,860 kcal</p>
+                  <p className="text-sm text-white/65">Daily monitoring score</p>
+                  <p className="mt-2 text-3xl font-semibold">82 / 100</p>
                 </div>
                 <div className="rounded-3xl bg-white/8 p-4">
-                  <p className="text-sm text-white/65">Action plan</p>
+                  <p className="text-sm text-white/65">Prevention focus</p>
                   <p className="mt-2 text-sm leading-6 text-white/80">
                     Add fruit at 3 PM, hydrate before dinner, increase evening vegetables.
                   </p>
@@ -103,11 +110,12 @@ export default function HomePage() {
 
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="glass-panel px-6 py-6">
-          <span className="status-chip">Why it works</span>
-          <h2 className="mt-4 text-3xl">Hackathon-simple, product-ready underneath.</h2>
+          <span className="status-chip">Why it fits</span>
+          <h2 className="mt-4 text-3xl">Built for preventive-health decisions, not passive logging.</h2>
           <p className="mt-4 text-base leading-7 text-ink/72">
-            The backend is designed around strict response schemas, so each frontend card reads from a predictable
-            payload. That keeps the MVP demo-friendly while giving you a clean path to richer nutrition logic later.
+            Each module turns nutrition inputs into a monitoring signal, a prevention-oriented interpretation, and a
+            next best intervention. The backend stays structured and predictable, which keeps the demo sharp and
+            agent-ready.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
