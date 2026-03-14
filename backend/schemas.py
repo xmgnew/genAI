@@ -83,6 +83,9 @@ class DailyMealEstimate(BaseModel):
 
 class DailyNutritionResponse(BaseModel):
     day_summary: str
+    primary_risk_flag: str
+    prevention_focus: str
+    next_best_intervention: str
     meals: List[DailyMealEstimate]
     total_estimated_nutrition: NutritionEstimate
     highlights: List[str]

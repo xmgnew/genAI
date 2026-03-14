@@ -180,6 +180,20 @@ export default function DailyNutritionPage() {
                   <h2 className="text-3xl">{result.day_summary}</h2>
                   <p className="mt-2 text-sm leading-6 text-ink/72">{result.hydration_tip}</p>
                 </div>
+                <div className="grid gap-3 lg:grid-cols-3">
+                  <div className="rounded-[24px] bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-ink/50">Primary risk flag</p>
+                    <p className="mt-2 text-sm leading-6 text-ink/78">{result.primary_risk_flag}</p>
+                  </div>
+                  <div className="rounded-[24px] bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-ink/50">Prevention focus</p>
+                    <p className="mt-2 text-sm leading-6 text-ink/78">{result.prevention_focus}</p>
+                  </div>
+                  <div className="rounded-[24px] bg-mint/25 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-ink/50">Next best intervention</p>
+                    <p className="mt-2 text-sm leading-6 text-ink/78">{result.next_best_intervention}</p>
+                  </div>
+                </div>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {Object.entries(result.total_estimated_nutrition).map(([key, value]) => (
                     <div key={key} className="rounded-3xl bg-slate-50 p-4">
