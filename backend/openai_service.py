@@ -1,10 +1,10 @@
 import base64
 import json
+import logging
 import os
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Callable, Dict, List, Type, TypeVar
 
 from dotenv import load_dotenv
-from fastapi import HTTPException
 from openai import OpenAI
 from pydantic import BaseModel
 
@@ -14,13 +14,16 @@ from backend.schemas import (
     CompareMealsResponse,
     DailyNutritionRequest,
     DailyNutritionResponse,
+    UserProfile,
 )
 
 load_dotenv()
 
 MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4.1")
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+FallbackBuilder = Callable[[], Dict[str, Any]]
 
 
 NUTRITION_SCHEMA: Dict[str, Any] = {
@@ -109,6 +112,9 @@ DAILY_NUTRITION_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "properties": {
         "day_summary": {"type": "string"},
+        "primary_risk_flag": {"type": "string"},
+        "prevention_focus": {"type": "string"},
+        "next_best_intervention": {"type": "string"},
         "meals": {
             "type": "array",
             "items": {
@@ -132,6 +138,9 @@ DAILY_NUTRITION_SCHEMA: Dict[str, Any] = {
     },
     "required": [
         "day_summary",
+        "primary_risk_flag",
+        "prevention_focus",
+        "next_best_intervention",
         "meals",
         "total_estimated_nutrition",
         "highlights",
@@ -146,18 +155,33 @@ DAILY_NUTRITION_SCHEMA: Dict[str, Any] = {
 
 
 SYSTEM_PROMPT = """
-You are NutriLens, an AI nutrition decision copilot.
-Return realistic nutritional estimates, not false precision.
-If details are uncertain, acknowledge that uncertainty in the summary or disclaimer.
-Do not provide medical diagnosis or claim certainty from a single image.
-Keep guidance practical, concise, and consumer-friendly.
+You are NutriLens, an AI nutrition copilot focused on preventive physical health.
+
+Your role is to help users understand the nutrition quality of meals,
+identify potential nutrition risks, and suggest the next best dietary action.
+
+Focus only on:
+- nutrition quality
+- diet balance
+- preventive health relevance
+- practical dietary improvements
+
+Do NOT include:
+- cooking instructions
+- food safety advice
+- food storage guidance
+- kitchen handling recommendations
+- preparation temperature suggestions
+
+Keep all outputs concise, practical, and consumer-friendly.
+Do not diagnose diseases.
 """.strip()
 
 
 def _get_client() -> OpenAI:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured.")
+        raise RuntimeError("OPENAI_API_KEY is not configured.")
     return OpenAI(api_key=api_key)
 
 
@@ -166,15 +190,159 @@ def image_bytes_to_data_url(raw_bytes: bytes, content_type: str) -> str:
     return f"data:{content_type};base64,{encoded}"
 
 
+def _normalize_user_profile(user_profile: UserProfile | Dict[str, Any] | None) -> UserProfile | None:
+    if user_profile is None:
+        return None
+    if isinstance(user_profile, UserProfile):
+        return user_profile
+    return UserProfile.model_validate(user_profile)
+
+
+def _build_user_context(goal: str, user_profile: UserProfile | Dict[str, Any] | None) -> str:
+    normalized_goal = (goal or "general_wellness").replace("_", " ")
+    profile = _normalize_user_profile(user_profile)
+
+    profile_parts = []
+    if profile:
+        if profile.age_range:
+            profile_parts.append(f"age range {profile.age_range}")
+        if profile.activity_level:
+            profile_parts.append(f"activity level {profile.activity_level}")
+        if profile.height_cm is not None:
+            profile_parts.append(f"height {profile.height_cm:g} cm")
+        if profile.weight_kg is not None:
+            profile_parts.append(f"weight {profile.weight_kg:g} kg")
+
+    if profile_parts:
+        return (
+            f"Personalization context: goal is {normalized_goal}. "
+            f"Profile signals: {', '.join(profile_parts)}. "
+            "Tailor guidance to this context while staying general, concise, and non-diagnostic."
+        )
+
+    return (
+        f"Personalization context: goal is {normalized_goal}. "
+        "Tailor guidance to this goal while staying general, concise, and non-diagnostic."
+    )
+
+
+def _fallback_nutrition() -> Dict[str, float]:
+    return {
+        "calories": 400,
+        "protein_g": 20,
+        "carbs_g": 35,
+        "fat_g": 15,
+        "fiber_g": 5,
+        "sugar_g": 6,
+        "sodium_mg": 500,
+    }
+
+
+def _validate_fallback_response(
+    response_model: Type[T],
+    fallback_builder: FallbackBuilder,
+    operation_name: str,
+) -> T:
+    fallback_data = fallback_builder()
+    validated = response_model.model_validate(fallback_data)
+    logger.info("Using fallback response for %s", operation_name)
+    return validated
+
+
+def _build_analyze_food_fallback() -> Dict[str, Any]:
+    return {
+        "meal_name": "Analysis unavailable",
+        "summary": "NutriLens could not confidently analyze this food image, so this fallback estimate is intentionally minimal.",
+        "estimated_nutrition": _fallback_nutrition(),
+        "ingredients": [
+            {
+                "name": "Unknown meal",
+                "estimated_amount": "Not available",
+                "confidence": 0.1,
+            }
+        ],
+        "health_signals": ["Image analysis was unavailable."],
+        "next_best_actions": ["Retry with a clearer image or add meal details in notes."],
+        "confidence": 0.1,
+        "disclaimer": "Fallback response. Nutrition values are rough placeholders for demo stability."
+    }
+
+
+def _build_compare_meals_fallback(request: CompareMealsRequest) -> Dict[str, Any]:
+    meal_a_name = request.meal_a.name or "Meal A"
+    meal_b_name = request.meal_b.name or "Meal B"
+    return {
+        "winner": "tie",
+        "verdict": "Both meals are treated as a tie because the live comparison was unavailable.",
+        "recommendation": f"Use the meal descriptions for a manual check between {meal_a_name} and {meal_b_name}.",
+        "scorecard": [
+    {
+        "category": "Calories",
+        "meal_a": "Estimate unavailable",
+        "meal_b": "Estimate unavailable",
+        "winner": "tie",
+    },
+    {
+        "category": "Protein",
+        "meal_a": "Estimate unavailable",
+        "meal_b": "Estimate unavailable",
+        "winner": "tie",
+    },
+    {
+        "category": "Fiber",
+        "meal_a": "Estimate unavailable",
+        "meal_b": "Estimate unavailable",
+        "winner": "tie",
+    },
+    {
+        "category": "Overall balance",
+        "meal_a": "Manual review suggested",
+        "meal_b": "Manual review suggested",
+        "winner": "tie",
+    }
+],
+        "tradeoffs": ["Comparison fallback used. Re-run for a richer breakdown."],
+        "disclaimer": "Fallback response. This comparison is a neutral placeholder.",
+    }
+
+
+def _build_daily_nutrition_fallback(request: DailyNutritionRequest) -> Dict[str, Any]:
+    meals = request.meals or []
+    fallback_meals = [
+        {
+            "meal_name": meal.name,
+            "estimated_nutrition": _fallback_nutrition(),
+            "takeaway": "Fallback summary used for this meal.",
+        }
+        for meal in meals
+    ]
+
+    return {
+        "day_summary": "NutriLens could not generate the full daily summary, so this fallback keeps the dashboard stable.",
+        "primary_risk_flag": "Monitoring gap",
+        "prevention_focus": "Re-establish a consistent view of meal quality and portion balance.",
+        "next_best_intervention": "Retry the summary and log the next meal with clearer detail.",
+        "meals": fallback_meals,
+        "total_estimated_nutrition": _fallback_nutrition(),
+        "highlights": ["Meals were captured, but live analysis was unavailable."],
+        "gaps": ["Nutrition totals could not be estimated reliably."],
+        "action_plan": ["Retry the summary or add clearer meal details."],
+        "hydration_tip": "Use water intake as a simple next step while analysis is unavailable.",
+        "overall_score": 65,
+        "disclaimer": "Fallback response. Daily totals are rough placeholders for demo stability.",
+    }
+
+
 def _structured_response(
+    operation_name: str,
     schema_name: str,
     schema: Dict[str, Any],
     user_content: List[Dict[str, Any]],
     response_model: Type[T],
+    fallback_builder: FallbackBuilder,
 ) -> T:
-    client = _get_client()
-
     try:
+        client = _get_client()
         response = client.responses.create(
             model=MODEL_NAME,
             instructions=SYSTEM_PROMPT,
@@ -189,36 +357,99 @@ def _structured_response(
             },
         )
     except Exception as exc:  # pragma: no cover - network/runtime dependency
-        raise HTTPException(status_code=502, detail=f"OpenAI request failed: {exc}") from exc
+        logger.warning("OpenAI request failed for %s: %s", operation_name, exc, exc_info=True)
+        return _validate_fallback_response(response_model, fallback_builder, operation_name)
 
     try:
         payload = json.loads(response.output_text)
+    except Exception as exc:  # pragma: no cover - parsing/runtime dependency
+        logger.warning("JSON parsing failed for %s: %s", operation_name, exc, exc_info=True)
+        return _validate_fallback_response(response_model, fallback_builder, operation_name)
+
+    try:
         return response_model.model_validate(payload)
     except Exception as exc:  # pragma: no cover - validation/runtime dependency
-        raise HTTPException(status_code=502, detail=f"Invalid structured model output: {exc}") from exc
+        logger.warning("Schema validation failed for %s: %s", operation_name, exc, exc_info=True)
+        return _validate_fallback_response(response_model, fallback_builder, operation_name)
 
 
-def analyze_food(image_data_url: str, notes: str, goal: str) -> AnalyzeFoodResponse:
+def analyze_food(
+    image_data_url: str,
+    notes: str,
+    goal: str,
+    user_profile: UserProfile | Dict[str, Any] | None = None,
+) -> AnalyzeFoodResponse:
+    user_context = _build_user_context(goal, user_profile)
     prompt = f"""
-Analyze this food image and estimate what the meal likely contains.
-Goal context: {goal or "No specific goal provided."}
-Additional notes: {notes or "No extra notes provided."}
+    Analyze this meal for a preventive health nutrition application.
 
-Return:
-- a short meal name
-- a concise summary
-- estimated nutrition
-- likely ingredients with estimated amounts
-- health signals
-- practical next actions
-- overall confidence
-- a disclaimer that values are estimates
-""".strip()
+    {user_context}
+    Additional notes: {notes or "No extra notes provided."}
+
+    Focus on nutrition quality and practical dietary decisions.
+
+    Rules:
+
+    - meal_name: 2 to 5 words only
+    - summary: 1 short sentence, maximum 16 words
+
+    Nutrition focus:
+    Evaluate the meal based on calories, protein, fiber, sugar, sodium, and overall balance.
+
+    ingredients:
+    - maximum 4 items
+    - estimated_amount must be a short phrase only
+
+    health_signals:
+    Return exactly 2 signals that highlight the most important nutrition insights.
+    Examples:
+    - high sodium exposure
+    - good protein support
+    - low fiber content
+    - balanced macro profile
+    - must refer only to nutrition quality or diet balance
+
+    health_signals must ONLY refer to nutrition quality or preventive health relevance.
+
+    Do NOT include:
+    - cooking safety
+    - temperature checks
+    - kitchen instructions
+    - storage advice
+
+    next_best_actions:
+    - Return exactly 2 short dietary actions that help improve nutrition quality.
+    - must be a dietary improvement for the next meal
+
+    Examples:
+    - add a fiber-rich side
+    - reduce salty sauces
+    - increase vegetables
+    - replace sugary drinks with water
+
+    Actions must be:
+    - nutrition-related
+    - actionable for the next meal
+
+    confidence:
+    Number between 0 and 1
+
+    disclaimer:
+    1 short sentence acknowledging estimation uncertainty.
+
+    All text must be concise and frontend-friendly.
+    Do not use markdown.
+    Do not diagnose diseases.
+    
+    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
+    """.strip()
 
     return _structured_response(
+        operation_name="analyze_food",
         schema_name="analyze_food_response",
         schema=ANALYZE_FOOD_SCHEMA,
         response_model=AnalyzeFoodResponse,
+        fallback_builder=_build_analyze_food_fallback,
         user_content=[
             {"type": "input_text", "text": prompt},
             {"type": "input_image", "image_url": image_data_url},
@@ -227,25 +458,72 @@ Return:
 
 
 def compare_meals(request: CompareMealsRequest) -> CompareMealsResponse:
+    user_context = _build_user_context(request.goal, request.user_profile)
     prompt = f"""
-Compare these two meal options for nutrition quality and practical fit.
-Decision focus: {request.focus or "General healthy eating."}
+    Compare these two meals for nutrition quality and preventive health relevance.
 
-Meal A:
-Name: {request.meal_a.name}
-Description: {request.meal_a.description}
+    {user_context}
+    Decision focus: {request.focus or "General healthy eating."}
 
-Meal B:
-Name: {request.meal_b.name}
-Description: {request.meal_b.description}
+    Meal A:
+    Name: {request.meal_a.name}
+    Description: {request.meal_a.description}
 
-Choose a winner only when the difference is meaningful. Otherwise return tie.
-""".strip()
+    Meal B:
+    Name: {request.meal_b.name}
+    Description: {request.meal_b.description}
+
+    Choose a winner only if the nutrition advantage is meaningful.
+
+    Evaluation criteria:
+    - protein quality
+    - fiber content
+    - sodium level
+    - overall nutrition balance
+
+    Rules:
+
+    verdict:
+    1 sentence, maximum 18 words.
+
+    recommendation:
+    1 short sentence explaining the better choice.
+
+    scorecard:
+    Exactly 4 categories:
+    - Calories
+    - Protein
+    - Fiber
+    - Overall balance
+
+    Each scorecard field must be short and UI-friendly.
+
+    tradeoffs:
+    Return exactly 2 short nutrition tradeoffs.
+
+    Focus ONLY on nutrition quality and preventive health impact.
+
+    Do NOT include:
+    - cooking safety
+    - preparation instructions
+    - storage advice
+
+    disclaimer:
+    1 short sentence acknowledging estimation uncertainty.
+
+    Keep all text concise and frontend-friendly.
+    Do not use markdown.
+    Do not diagnose diseases.
+    
+    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
+    """.strip()
 
     return _structured_response(
+        operation_name="compare_meals",
         schema_name="compare_meals_response",
         schema=COMPARE_MEALS_SCHEMA,
         response_model=CompareMealsResponse,
+        fallback_builder=lambda: _build_compare_meals_fallback(request),
         user_content=[{"type": "input_text", "text": prompt}],
     )
 
@@ -258,20 +536,84 @@ def daily_nutrition(request: DailyNutritionRequest) -> DailyNutritionResponse:
         )
 
     goals = request.goals.model_dump() if request.goals else {}
+    user_context = _build_user_context(request.goal, request.user_profile)
 
     prompt = f"""
-Summarize this full day of eating and estimate the overall nutrition picture.
-Date: {request.date or "Not provided"}
-Goals: {json.dumps(goals)}
-Meals:
-{chr(10).join(meal_lines)}
+    You are NutriLens, an AI nutrition monitoring assistant focused on preventive health.
 
-Return per-meal takeaways, total estimated nutrition, highlights, gaps, an action plan, a hydration tip, and an overall score out of 100.
-""".strip()
+    Summarize this full day of eating and identify the most important nutrition pattern.
+
+    {user_context}
+
+    Date: {request.date or "Not provided"}
+    Goals: {json.dumps(goals)}
+
+    Meals:
+    {chr(10).join(meal_lines)}
+
+    Focus on:
+    - nutrition balance
+    - preventive health relevance
+    - next dietary improvement
+
+    Rules:
+
+    day_summary:
+    1 short sentence, maximum 18 words.
+
+    primary_risk_flag:
+    1 short phrase identifying the most important nutrition concern.
+    Examples:
+    - low fiber intake
+    - high sodium exposure
+    - high added sugar pattern
+
+    prevention_focus:
+    1 short phrase describing the key nutrition improvement focus.
+
+    next_best_intervention:
+    1 short actionable dietary change for the next day.
+
+    meals:
+    Each meal must include:
+    - estimated nutrition
+    - takeaway with maximum 12 words
+
+    highlights:
+    Exactly 2 positive nutrition signals.
+
+    gaps:
+    Exactly 2 nutrition gaps.
+
+    action_plan:
+    Exactly 2 simple dietary improvements.
+
+    hydration_tip:
+    1 short sentence.
+
+    overall_score:
+    Integer from 1 to 100 reflecting overall nutrition balance.
+
+    Important:
+    Focus ONLY on nutrition patterns and preventive health relevance.
+
+    Do NOT include:
+    - cooking instructions
+    - food safety advice
+    - storage guidance
+    - general lifestyle advice unrelated to nutrition
+
+    Keep responses concise, practical, and UI-friendly.
+    Do not diagnose disease.
+    
+    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
+    """.strip()
 
     return _structured_response(
+        operation_name="daily_nutrition",
         schema_name="daily_nutrition_response",
         schema=DAILY_NUTRITION_SCHEMA,
         response_model=DailyNutritionResponse,
+        fallback_builder=lambda: _build_daily_nutrition_fallback(request),
         user_content=[{"type": "input_text", "text": prompt}],
     )
