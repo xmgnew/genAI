@@ -153,8 +153,6 @@ export default function CompareMealsPage() {
               </p>
             )}
           </div>
-
-          <JsonPanel title="Raw JSON response" data={result} />
         </div>
       </div>
     </div>
