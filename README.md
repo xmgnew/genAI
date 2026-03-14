@@ -28,7 +28,7 @@ Create `.env.local` for the frontend and `.env` for the backend, or export varia
 
 ```bash
 OPENAI_API_KEY=your_key_here
-OPENAI_MODEL=gpt-4.1
+OPENAI_MODEL=gpt-5-mini
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
