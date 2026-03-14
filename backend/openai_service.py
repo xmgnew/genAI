@@ -155,12 +155,26 @@ DAILY_NUTRITION_SCHEMA: Dict[str, Any] = {
 
 
 SYSTEM_PROMPT = """
-You are NutriLens, an agentic AI nutrition copilot for preventive physical health.
-Return realistic nutritional estimates, not false precision.
-If details are uncertain, acknowledge that uncertainty in the summary or disclaimer.
-Use the user's health goal and optional profile to personalize nutrition guidance.
-Do not provide medical diagnosis or claim certainty from a single image.
-Keep guidance practical, concise, consumer-friendly, and frontend-friendly.
+You are NutriLens, an AI nutrition copilot focused on preventive physical health.
+
+Your role is to help users understand the nutrition quality of meals,
+identify potential nutrition risks, and suggest the next best dietary action.
+
+Focus only on:
+- nutrition quality
+- diet balance
+- preventive health relevance
+- practical dietary improvements
+
+Do NOT include:
+- cooking instructions
+- food safety advice
+- food storage guidance
+- kitchen handling recommendations
+- preparation temperature suggestions
+
+Keep all outputs concise, practical, and consumer-friendly.
+Do not diagnose diseases.
 """.strip()
 
 
@@ -367,26 +381,67 @@ def analyze_food(
 ) -> AnalyzeFoodResponse:
     user_context = _build_user_context(goal, user_profile)
     prompt = f"""
-    Analyze this food image for a preventive health nutrition demo.
+    Analyze this meal for a preventive health nutrition application.
 
     {user_context}
     Additional notes: {notes or "No extra notes provided."}
 
-    Focus on how this meal may support or weaken everyday physical health.
+    Focus on nutrition quality and practical dietary decisions.
 
     Rules:
+
     - meal_name: 2 to 5 words only
-    - summary: 1 sentence, maximum 18 words
-    - estimated_nutrition: realistic rough estimates only
-    - ingredients: maximum 4 items
-    - each ingredient estimated_amount: short phrase only
-    - health_signals: exactly 2 short strings
-    - next_best_actions: exactly 2 short action strings
-    - confidence: number from 0 to 1
-    - disclaimer: 1 short sentence only
-    - keep all text concise and frontend-friendly
-    - do not use markdown
-    - do not diagnose disease
+    - summary: 1 short sentence, maximum 16 words
+
+    Nutrition focus:
+    Evaluate the meal based on calories, protein, fiber, sugar, sodium, and overall balance.
+
+    ingredients:
+    - maximum 4 items
+    - estimated_amount must be a short phrase only
+
+    health_signals:
+    Return exactly 2 signals that highlight the most important nutrition insights.
+    Examples:
+    - high sodium exposure
+    - good protein support
+    - low fiber content
+    - balanced macro profile
+    - must refer only to nutrition quality or diet balance
+
+    health_signals must ONLY refer to nutrition quality or preventive health relevance.
+
+    Do NOT include:
+    - cooking safety
+    - temperature checks
+    - kitchen instructions
+    - storage advice
+
+    next_best_actions:
+    - Return exactly 2 short dietary actions that help improve nutrition quality.
+    - must be a dietary improvement for the next meal
+
+    Examples:
+    - add a fiber-rich side
+    - reduce salty sauces
+    - increase vegetables
+    - replace sugary drinks with water
+
+    Actions must be:
+    - nutrition-related
+    - actionable for the next meal
+
+    confidence:
+    Number between 0 and 1
+
+    disclaimer:
+    1 short sentence acknowledging estimation uncertainty.
+
+    All text must be concise and frontend-friendly.
+    Do not use markdown.
+    Do not diagnose diseases.
+    
+    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
     """.strip()
 
     return _structured_response(
@@ -405,7 +460,8 @@ def analyze_food(
 def compare_meals(request: CompareMealsRequest) -> CompareMealsResponse:
     user_context = _build_user_context(request.goal, request.user_profile)
     prompt = f"""
-    Compare these two meal options for preventive nutrition quality and everyday physical health.
+    Compare these two meals for nutrition quality and preventive health relevance.
+
     {user_context}
     Decision focus: {request.focus or "General healthy eating."}
 
@@ -417,19 +473,49 @@ def compare_meals(request: CompareMealsRequest) -> CompareMealsResponse:
     Name: {request.meal_b.name}
     Description: {request.meal_b.description}
 
-    Choose a winner only when the difference is meaningful. Otherwise return tie.
+    Choose a winner only if the nutrition advantage is meaningful.
+
+    Evaluation criteria:
+    - protein quality
+    - fiber content
+    - sodium level
+    - overall nutrition balance
 
     Rules:
-    - verdict: 1 sentence, maximum 20 words
-    - recommendation: 1 sentence, maximum 20 words
-    - scorecard: exactly 4 categories
-    - each scorecard field should be short and UI-friendly
-    - tradeoffs: exactly 2 short strings
-    - disclaimer: 1 short sentence only
-    - focus on practical health improvement and nutrition balance
-    - keep all text concise and frontend-friendly
-    - do not use markdown
-    - do not diagnose disease
+
+    verdict:
+    1 sentence, maximum 18 words.
+
+    recommendation:
+    1 short sentence explaining the better choice.
+
+    scorecard:
+    Exactly 4 categories:
+    - Calories
+    - Protein
+    - Fiber
+    - Overall balance
+
+    Each scorecard field must be short and UI-friendly.
+
+    tradeoffs:
+    Return exactly 2 short nutrition tradeoffs.
+
+    Focus ONLY on nutrition quality and preventive health impact.
+
+    Do NOT include:
+    - cooking safety
+    - preparation instructions
+    - storage advice
+
+    disclaimer:
+    1 short sentence acknowledging estimation uncertainty.
+
+    Keep all text concise and frontend-friendly.
+    Do not use markdown.
+    Do not diagnose diseases.
+    
+    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
     """.strip()
 
     return _structured_response(
@@ -453,33 +539,74 @@ def daily_nutrition(request: DailyNutritionRequest) -> DailyNutritionResponse:
     user_context = _build_user_context(request.goal, request.user_profile)
 
     prompt = f"""
-    You are NutriLens, an agentic AI nutrition copilot for preventive physical health.
+    You are NutriLens, an AI nutrition monitoring assistant focused on preventive health.
 
-    Summarize this full day of eating as a nutrition monitoring and prevention report.
-    Focus on helping the user improve physical health through better daily food decisions.
+    Summarize this full day of eating and identify the most important nutrition pattern.
+
     {user_context}
 
     Date: {request.date or "Not provided"}
     Goals: {json.dumps(goals)}
+
     Meals:
     {chr(10).join(meal_lines)}
 
+    Focus on:
+    - nutrition balance
+    - preventive health relevance
+    - next dietary improvement
+
     Rules:
-    - day_summary: 1 sentence, maximum 20 words
-    - meals: include one takeaway per meal, each takeaway max 12 words
-    - total_estimated_nutrition: realistic rough estimates only
-    - highlights: exactly 2 short strings
-    - gaps: exactly 2 short strings
-    - primary_risk_flag: 1 short string
-    - prevention_focus: 1 short string
-    - next_best_intervention: 1 short actionable sentence
-    - action_plan: exactly 2 short action strings
-    - hydration_tip: 1 short sentence
-    - overall_score: integer from 1 to 100
-    - disclaimer: 1 short sentence only
-    - keep all text concise, practical, and frontend-friendly
-    - do not diagnose disease
-    - focus on prevention, nutrition balance, and everyday health improvement
+
+    day_summary:
+    1 short sentence, maximum 18 words.
+
+    primary_risk_flag:
+    1 short phrase identifying the most important nutrition concern.
+    Examples:
+    - low fiber intake
+    - high sodium exposure
+    - high added sugar pattern
+
+    prevention_focus:
+    1 short phrase describing the key nutrition improvement focus.
+
+    next_best_intervention:
+    1 short actionable dietary change for the next day.
+
+    meals:
+    Each meal must include:
+    - estimated nutrition
+    - takeaway with maximum 12 words
+
+    highlights:
+    Exactly 2 positive nutrition signals.
+
+    gaps:
+    Exactly 2 nutrition gaps.
+
+    action_plan:
+    Exactly 2 simple dietary improvements.
+
+    hydration_tip:
+    1 short sentence.
+
+    overall_score:
+    Integer from 1 to 100 reflecting overall nutrition balance.
+
+    Important:
+    Focus ONLY on nutrition patterns and preventive health relevance.
+
+    Do NOT include:
+    - cooking instructions
+    - food safety advice
+    - storage guidance
+    - general lifestyle advice unrelated to nutrition
+
+    Keep responses concise, practical, and UI-friendly.
+    Do not diagnose disease.
+    
+    If a suggestion is not directly related to nutrition quality, preventive health relevance, or dietary improvement, do not include it.
     """.strip()
 
     return _structured_response(
