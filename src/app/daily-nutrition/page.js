@@ -28,7 +28,10 @@ export default function DailyNutritionPage() {
   function addMeal() {
     setMeals((current) => [...current, { name: `Meal ${current.length + 1}`, description: "", time: "" }]);
   }
-
+  function removeMeal(index) {
+    setMeals((current) => (current.length > 1 ? current.filter((_, mealIndex) => mealIndex !== index) : current));
+  }
+  
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
@@ -62,12 +65,20 @@ export default function DailyNutritionPage() {
 
       <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
         <form onSubmit={handleSubmit} className="glass-panel space-y-6 px-6 py-6">
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid items-end gap-5 md:grid-cols-3">
             <div>
               <label className="field-label" htmlFor="date">
                 Date
               </label>
-              <input id="date" type="date" className="field-input" value={date} onChange={(event) => setDate(event.target.value)} />
+              <input
+                id="date"
+                type="text"
+                inputMode="numeric"
+                placeholder="yyyy-mm-dd"
+                className="field-input"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+              />
             </div>
             <div>
               <label className="field-label" htmlFor="calorieTarget">
@@ -119,7 +130,7 @@ export default function DailyNutritionPage() {
             </div>
             {meals.map((meal, index) => (
               <div key={`${meal.name}-${index}`} className="rounded-[26px] border border-slate-200 bg-white p-4">
-                <div className="grid gap-4 md:grid-cols-[1fr_160px]">
+                <div className="grid gap-4 md:grid-cols-[1fr_160px_auto]">
                   <div>
                     <label className="field-label" htmlFor={`meal-name-${index}`}>
                       Meal name
@@ -131,6 +142,7 @@ export default function DailyNutritionPage() {
                       onChange={(event) => updateMeal(index, "name", event.target.value)}
                     />
                   </div>
+                    
                   <div>
                     <label className="field-label" htmlFor={`meal-time-${index}`}>
                       Time
@@ -142,8 +154,22 @@ export default function DailyNutritionPage() {
                       value={meal.time}
                       onChange={(event) => updateMeal(index, "time", event.target.value)}
                     />
-                  </div>
                 </div>
+
+                {meals.length > 1 && (
+                <div className="flex items-center pt-7">
+                  <button
+                    type="button"
+                    onClick={() => removeMeal(index)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-ink/60 transition hover:border-red-400 hover:text-red-500"
+                    aria-label="Delete meal"
+                  >
+                    🗑
+                    </button>
+                  </div>
+                )}
+
+              </div>
                 <div className="mt-4">
                   <label className="field-label" htmlFor={`meal-description-${index}`}>
                     What did you eat?
