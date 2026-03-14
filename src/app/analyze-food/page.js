@@ -100,7 +100,7 @@ export default function AnalyzeFoodPage() {
         disclaimer="Nutrition estimates are generated from image analysis and may vary based on ingredients, portion size, and preparation method. For informational purposes only — not medical or dietary advice."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_minmax(0,1fr)]">
         <form onSubmit={handleSubmit} className="glass-panel space-y-6 px-6 py-6">
           <div>
             <label className="field-label" htmlFor="image">
@@ -177,7 +177,7 @@ export default function AnalyzeFoodPage() {
           </button>
         </form>
 
-    <div className="glass-panel flex h-full flex-col px-6 py-6">
+    <div className="glass-panel min-w-0 max-h-[797px] overflow-y-auto px-6 py-6">
       <div>
     <div className="flex items-center justify-between">
       <span className="field-label">Nutrition snapshot</span>
@@ -251,7 +251,7 @@ export default function AnalyzeFoodPage() {
 
 
 <div className="min-w-0 space-y-6">
-  <div className="glass-panel px-6 py-6">
+  <div className="glass-panel min-w-0 h-[797px] overflow-y-auto px-6 py-6"> 
     <span className="field-label">Coaching signals</span>
 
     {result ? (
