@@ -1,4 +1,4 @@
-import imghdr
+import filetype
 import os
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -53,14 +53,12 @@ async def analyze_food_route(
     if not raw_bytes:
         raise HTTPException(status_code=400, detail="The uploaded image is empty.")
 
-    sniffed_type = imghdr.what(None, h=raw_bytes)
-    mime_type = image.content_type or "image/jpeg"
+    kind = filetype.guess(raw_bytes)
 
-    if not sniffed_type:
+    if kind is None or not kind.mime.startswith("image/"):
         raise HTTPException(status_code=400, detail="Unsupported or invalid image file.")
 
-    if "/" not in mime_type:
-        mime_type = f"image/{sniffed_type}"
+    mime_type = kind.mime
 
     user_profile = {
         key: value

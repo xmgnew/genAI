@@ -1,3 +1,4 @@
+filetype
 fastapi==0.115.8
 openai==1.68.2
 pydantic==2.10.6
