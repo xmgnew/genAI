@@ -143,27 +143,27 @@ function getDailyNutritionStatus(key, actualValue, targetValue) {
 
   const percent = (actual / target) * 100;
 
-  const lowerIsBetter = ["sodium_mg", "sugar_g", "saturated_fat_g"];
-  const higherIsBetter = ["protein_g", "fiber_g"];
-  const targetRange = ["calories", "carbs_g", "fat_g"];
+  const limitNutrients = ["sodium_mg", "sugar_g", "saturated_fat_g"];
+  const encourageNutrients = ["protein_g", "fiber_g"];
+  const targetRangeNutrients = ["calories", "carbs_g", "fat_g"];
 
-  if (lowerIsBetter.includes(key)) {
-    if (percent <= 50) return { state: "close", percent };
-    if (percent <= 100) return { state: "enough", percent };
-    return { state: "over", percent };
+  if (limitNutrients.includes(key)) {
+    if (percent <= 50) return { state: "low", percent };
+    if (percent <= 100) return { state: "moderate", percent };
+    return { state: "high", percent };
   }
 
-  if (higherIsBetter.includes(key)) {
+  if (encourageNutrients.includes(key)) {
     if (percent < 75) return { state: "deficit", percent };
     if (percent < 95) return { state: "close", percent };
     if (percent <= 120) return { state: "enough", percent };
-    return { state: "over", percent };
+    return { state: "high", percent };
   }
 
-  if (targetRange.includes(key)) {
+  if (targetRangeNutrients.includes(key)) {
     if (percent < 75) return { state: "deficit", percent };
     if (percent < 95) return { state: "close", percent };
-    if (percent <= 110) return { state: "enough", percent };
+    if (percent <= 110) return { state: "in_range", percent };
     return { state: "over", percent };
   }
 
@@ -178,7 +178,15 @@ function getDailyTileClass(state) {
       return "bg-yellow-200";
     case "enough":
       return "bg-green-200";
+    case "in_range":
+      return "bg-green-200";
     case "over":
+      return "bg-red-200";
+    case "low":
+      return "bg-green-200";
+    case "moderate":
+      return "bg-yellow-200";
+    case "high":
       return "bg-red-200";
     default:
       return "bg-slate-200";
@@ -193,8 +201,16 @@ function getDailyStatusLabel(state) {
       return "Close";
     case "enough":
       return "Enough";
+    case "in_range":
+      return "In range";
     case "over":
       return "Over";
+    case "low":
+      return "Low";
+    case "moderate":
+      return "Moderate";
+    case "high":
+      return "High";
     default:
       return "";
   }
