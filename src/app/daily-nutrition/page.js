@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { postJson } from "@/lib/api";
 import { JsonPanel } from "@/components/json-panel";
 import { PageIntro } from "@/components/page-intro";
+import { loadUserProfile } from "@/lib/user-profile";
 
 const defaultMeals = [
   { name: "Breakfast", description: "", time: "08:00" },
@@ -11,27 +12,229 @@ const defaultMeals = [
   { name: "Dinner", description: "", time: "19:00" },
 ];
 
+function formatNutritionLabel(key) {
+  const labelMap = {
+    calories: "Calories",
+    protein_g: "Protein",
+    carbs_g: "Carbs",
+    fat_g: "Fat",
+    fiber_g: "Fiber",
+    sugar_g: "Sugar",
+    sodium_mg: "Sodium",
+    saturated_fat_g: "Sat. Fat",
+  };
+
+  return labelMap[key] || key.replaceAll("_", " ");
+}
+
+function formatGoalLabel(goal) {
+  const labelMap = {
+    general_wellness: "General wellness",
+    weight_management: "Weight management",
+    muscle_gain: "Muscle gain",
+    lower_sodium: "Lower sodium",
+    lower_sugar: "Lower sugar",
+    higher_fiber: "Higher fiber",
+  };
+
+  return labelMap[goal] || goal || "Not set";
+}
+
+function getPersonalizedDailyValues(profile) {
+  const weightKg = Number(profile?.weight_kg);
+  const activity = profile?.activity_level;
+  const goal = profile?.goal;
+  const comorbidities = profile?.comorbidities || [];
+
+  const values = {
+    calories: 2000,
+    protein_g: 50,
+    carbs_g: 275,
+    fat_g: 75,
+    fiber_g: 28,
+    sugar_g: 100,
+    sodium_mg: 2300,
+    saturated_fat_g: 20,
+  };
+
+  if (!Number.isNaN(weightKg) && weightKg > 0) {
+    let proteinPerKg = 0.8;
+
+    if (goal === "weight_management") proteinPerKg = 1.0;
+    if (activity === "active_daily") proteinPerKg = Math.max(proteinPerKg, 1.2);
+    if (activity === "very_active_daily") proteinPerKg = Math.max(proteinPerKg, 1.4);
+    if (goal === "muscle_gain") proteinPerKg = Math.max(proteinPerKg, 1.6);
+
+    values.protein_g = Math.round(weightKg * proteinPerKg);
+  }
+
+  switch (activity) {
+    case "sedentary":
+      values.calories -= 200;
+      values.carbs_g -= 25;
+      break;
+    case "light_weekly":
+      break;
+    case "moderate_weekly":
+      values.calories += 100;
+      values.protein_g += 5;
+      break;
+    case "active_daily":
+      values.calories += 200;
+      values.carbs_g += 25;
+      values.protein_g += 10;
+      break;
+    case "very_active_daily":
+      values.calories += 400;
+      values.carbs_g += 50;
+      values.protein_g += 15;
+      break;
+    default:
+      break;
+  }
+
+  switch (goal) {
+    case "muscle_gain":
+      values.calories += 250;
+      values.protein_g += 10;
+      break;
+    case "weight_management":
+      values.calories -= 200;
+      break;
+    case "lower_sodium":
+      values.sodium_mg = 1800;
+      break;
+    case "lower_sugar":
+      values.sugar_g = 50;
+      break;
+    case "higher_fiber":
+      values.fiber_g = 35;
+      break;
+    default:
+      break;
+  }
+
+  if (comorbidities.includes("hypertension")) {
+    values.sodium_mg = 1500;
+  }
+
+  if (comorbidities.includes("diabetes_prediabetes")) {
+    values.sugar_g = 50;
+  }
+
+  if (comorbidities.includes("high_cholesterol")) {
+    values.saturated_fat_g = 15;
+  }
+
+  if (comorbidities.includes("kidney_concerns")) {
+    values.sodium_mg = Math.min(values.sodium_mg, 1500);
+  }
+
+  return values;
+}
+
+function getDailyNutritionStatus(key, actualValue, targetValue) {
+  const actual = Number(actualValue);
+  const target = Number(targetValue);
+
+  if (Number.isNaN(actual) || Number.isNaN(target) || !target) {
+    return { state: "neutral", percent: null };
+  }
+
+  const percent = (actual / target) * 100;
+
+  const lowerIsBetter = ["sodium_mg", "sugar_g", "saturated_fat_g"];
+  const higherIsBetter = ["protein_g", "fiber_g"];
+  const targetRange = ["calories", "carbs_g", "fat_g"];
+
+  if (lowerIsBetter.includes(key)) {
+    if (percent <= 50) return { state: "close", percent };
+    if (percent <= 100) return { state: "enough", percent };
+    return { state: "over", percent };
+  }
+
+  if (higherIsBetter.includes(key)) {
+    if (percent < 75) return { state: "deficit", percent };
+    if (percent < 95) return { state: "close", percent };
+    if (percent <= 120) return { state: "enough", percent };
+    return { state: "over", percent };
+  }
+
+  if (targetRange.includes(key)) {
+    if (percent < 75) return { state: "deficit", percent };
+    if (percent < 95) return { state: "close", percent };
+    if (percent <= 110) return { state: "enough", percent };
+    return { state: "over", percent };
+  }
+
+  return { state: "neutral", percent };
+}
+
+function getDailyTileClass(state) {
+  switch (state) {
+    case "deficit":
+      return "bg-blue-200";
+    case "close":
+      return "bg-yellow-200";
+    case "enough":
+      return "bg-green-200";
+    case "over":
+      return "bg-red-200";
+    default:
+      return "bg-slate-200";
+  }
+}
+
+function getDailyStatusLabel(state) {
+  switch (state) {
+    case "deficit":
+      return "Deficit";
+    case "close":
+      return "Close";
+    case "enough":
+      return "Enough";
+    case "over":
+      return "Over";
+    default:
+      return "";
+  }
+}
+
 export default function DailyNutritionPage() {
   const [date, setDate] = useState("");
-  const [focus, setFocus] = useState("");
-  const [calorieTarget, setCalorieTarget] = useState("");
-  const [proteinTarget, setProteinTarget] = useState("");
   const [meals, setMeals] = useState(defaultMeals);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    setUserProfile(loadUserProfile());
+  }, []);
 
   function updateMeal(index, field, value) {
-    setMeals((current) => current.map((meal, mealIndex) => (mealIndex === index ? { ...meal, [field]: value } : meal)));
+    setMeals((current) =>
+      current.map((meal, mealIndex) =>
+        mealIndex === index ? { ...meal, [field]: value } : meal
+      )
+    );
   }
 
   function addMeal() {
-    setMeals((current) => [...current, { name: `Meal ${current.length + 1}`, description: "", time: "" }]);
+    setMeals((current) => [
+      ...current,
+      { name: `Meal ${current.length + 1}`, description: "", time: "" },
+    ]);
   }
+
   function removeMeal(index) {
-    setMeals((current) => (current.length > 1 ? current.filter((_, mealIndex) => mealIndex !== index) : current));
+    setMeals((current) =>
+      current.length > 1
+        ? current.filter((_, mealIndex) => mealIndex !== index)
+        : current
+    );
   }
-  
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
@@ -41,10 +244,14 @@ export default function DailyNutritionPage() {
       const response = await postJson("/daily-nutrition", {
         date,
         meals: meals.filter((meal) => meal.description.trim()),
-        goals: {
-          focus,
-          calorie_target: calorieTarget ? Number(calorieTarget) : null,
-          protein_target_g: proteinTarget ? Number(proteinTarget) : null,
+        goal: userProfile?.goal || "",
+        user_profile: {
+          ...(userProfile?.height_cm ? { height_cm: Number(userProfile.height_cm) } : {}),
+          ...(userProfile?.weight_kg ? { weight_kg: Number(userProfile.weight_kg) } : {}),
+          ...(userProfile?.age_range ? { age_range: userProfile.age_range } : {}),
+          ...(userProfile?.activity_level ? { activity_level: userProfile.activity_level } : {}),
+          ...(userProfile?.comorbidities ? { comorbidities: userProfile.comorbidities } : {}),
+          ...(userProfile?.other_conditions ? { other_conditions: userProfile.other_conditions } : {}),
         },
       });
       setResult(response);
@@ -55,17 +262,21 @@ export default function DailyNutritionPage() {
     }
   }
 
+  const dailyTargets = useMemo(
+    () => getPersonalizedDailyValues(userProfile || {}),
+    [userProfile]
+  );
+
   return (
     <div className="space-y-8">
       <PageIntro
-        eyebrow="Daily Nutrition"
         title="Summarize an entire day in one pass."
-        description="Capture meals across the day, pass your nutrition goals, and generate a concise AI summary with totals, gaps, and a practical action plan."
+        description="Capture meals across the day and generate a concise AI summary with totals, gaps, and a practical action plan."
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
         <form onSubmit={handleSubmit} className="glass-panel space-y-6 px-6 py-6">
-          <div className="grid items-end gap-5 md:grid-cols-3">
+          <div className="grid items-end gap-5 md:grid-cols-2">
             <div>
               <label className="field-label" htmlFor="date">
                 Date
@@ -80,45 +291,6 @@ export default function DailyNutritionPage() {
                 onChange={(event) => setDate(event.target.value)}
               />
             </div>
-            <div>
-              <label className="field-label" htmlFor="calorieTarget">
-                Calorie target
-              </label>
-              <input
-                id="calorieTarget"
-                type="number"
-                className="field-input"
-                placeholder="2000"
-                value={calorieTarget}
-                onChange={(event) => setCalorieTarget(event.target.value)}
-              />
-            </div>
-            <div>
-              <label className="field-label" htmlFor="proteinTarget">
-                Protein target (g)
-              </label>
-              <input
-                id="proteinTarget"
-                type="number"
-                className="field-input"
-                placeholder="130"
-                value={proteinTarget}
-                onChange={(event) => setProteinTarget(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="field-label" htmlFor="focus">
-              Goal focus
-            </label>
-            <input
-              id="focus"
-              className="field-input"
-              placeholder="Examples: fat loss, stable energy, reduce evening snacking"
-              value={focus}
-              onChange={(event) => setFocus(event.target.value)}
-            />
           </div>
 
           <div className="space-y-4">
@@ -128,8 +300,12 @@ export default function DailyNutritionPage() {
                 Add meal
               </button>
             </div>
+
             {meals.map((meal, index) => (
-              <div key={`${meal.name}-${index}`} className="rounded-[26px] border border-slate-200 bg-white p-4">
+              <div
+                key={`${meal.name}-${index}`}
+                className="rounded-[26px] border border-slate-200 bg-white p-4"
+              >
                 <div className="grid gap-4 md:grid-cols-[1fr_160px_auto]">
                   <div>
                     <label className="field-label" htmlFor={`meal-name-${index}`}>
@@ -142,7 +318,7 @@ export default function DailyNutritionPage() {
                       onChange={(event) => updateMeal(index, "name", event.target.value)}
                     />
                   </div>
-                    
+
                   <div>
                     <label className="field-label" htmlFor={`meal-time-${index}`}>
                       Time
@@ -154,22 +330,22 @@ export default function DailyNutritionPage() {
                       value={meal.time}
                       onChange={(event) => updateMeal(index, "time", event.target.value)}
                     />
+                  </div>
+
+                  {meals.length > 1 && (
+                    <div className="flex items-center pt-7">
+                      <button
+                        type="button"
+                        onClick={() => removeMeal(index)}
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-ink/60 transition hover:border-red-400 hover:text-red-500"
+                        aria-label="Delete meal"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {meals.length > 1 && (
-                <div className="flex items-center pt-7">
-                  <button
-                    type="button"
-                    onClick={() => removeMeal(index)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-ink/60 transition hover:border-red-400 hover:text-red-500"
-                    aria-label="Delete meal"
-                  >
-                    🗑
-                    </button>
-                  </div>
-                )}
-
-              </div>
                 <div className="mt-4">
                   <label className="field-label" htmlFor={`meal-description-${index}`}>
                     What did you eat?
@@ -180,14 +356,20 @@ export default function DailyNutritionPage() {
                     className="field-input resize-none"
                     placeholder="Examples: Greek yogurt with berries and granola, chicken burrito bowl, latte and cookie."
                     value={meal.description}
-                    onChange={(event) => updateMeal(index, "description", event.target.value)}
+                    onChange={(event) =>
+                      updateMeal(index, "description", event.target.value)
+                    }
                   />
                 </div>
               </div>
             ))}
           </div>
 
-          {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+          {error ? (
+            <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          ) : null}
 
           <button type="submit" className="primary-button w-full" disabled={isLoading}>
             {isLoading ? "Summarizing day..." : "Generate daily summary"}
@@ -200,23 +382,40 @@ export default function DailyNutritionPage() {
               <span className="status-chip">Daily summary</span>
               {result ? <span className="status-chip">Score {result.overall_score}/100</span> : null}
             </div>
+
             {result ? (
               <div className="mt-5 space-y-6">
                 <div>
                   <h2 className="text-3xl">{result.day_summary}</h2>
                   <p className="mt-2 text-sm leading-6 text-ink/72">{result.hydration_tip}</p>
                 </div>
+
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {Object.entries(result.total_estimated_nutrition).map(([key, value]) => (
-                    <div key={key} className="rounded-3xl bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-[0.16em] text-ink/50">{key.replaceAll("_", " ")}</p>
-                      <p className="mt-2 text-2xl font-semibold">{value}</p>
-                    </div>
-                  ))}
+                  {Object.entries(result.total_estimated_nutrition).map(([key, value]) => {
+                    const target = dailyTargets[key];
+                    const { state, percent } = getDailyNutritionStatus(key, value, target);
+
+                    return (
+                      <div key={key} className={`rounded-3xl p-4 ${getDailyTileClass(state)}`}>
+                        <p className="text-xs uppercase tracking-[0.16em] text-ink/60">
+                          {formatNutritionLabel(key)}
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-ink">{value}</p>
+                        {percent != null ? (
+                          <p className="mt-1 text-xs text-ink/65">
+                            {getDailyStatusLabel(state)} · {Math.round(percent)}% of target
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
+
                 <div className="grid gap-4 lg:grid-cols-3">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Highlights</p>
+                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">
+                      Highlights
+                    </p>
                     <ul className="mt-3 space-y-2">
                       {result.highlights.map((item) => (
                         <li key={item} className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/75">
@@ -225,8 +424,11 @@ export default function DailyNutritionPage() {
                       ))}
                     </ul>
                   </div>
+
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Gaps</p>
+                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">
+                      Gaps
+                    </p>
                     <ul className="mt-3 space-y-2">
                       {result.gaps.map((item) => (
                         <li key={item} className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/75">
@@ -235,8 +437,11 @@ export default function DailyNutritionPage() {
                       ))}
                     </ul>
                   </div>
+
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Action plan</p>
+                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">
+                      Action plan
+                    </p>
                     <ul className="mt-3 space-y-2">
                       {result.action_plan.map((item) => (
                         <li key={item} className="rounded-2xl bg-mint/25 px-4 py-3 text-sm text-ink/75">
