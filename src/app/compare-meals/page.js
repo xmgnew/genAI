@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { postJson } from "@/lib/api";
-import { JsonPanel } from "@/components/json-panel";
 import { PageIntro } from "@/components/page-intro";
 
 const initialState = {
@@ -31,6 +30,19 @@ export default function CompareMealsPage() {
         [field]: value,
       },
     }));
+  }
+
+  function getMealLabel(value) {
+    if (value === "meal_a" || value === "MEAL_A") {
+      return form.meal_a.name || "Meal A";
+    }
+    if (value === "meal_b" || value === "MEAL_B") {
+      return form.meal_b.name || "Meal B";
+    }
+    if (value === "tie" || value === "TIE") {
+      return "Tie";
+    }
+    return String(value || "").replaceAll("_", " ");
   }
 
   async function handleSubmit(event) {
@@ -67,7 +79,9 @@ export default function CompareMealsPage() {
               className="field-input"
               placeholder="Examples: muscle gain, lower calories, better post-workout meal"
               value={form.focus}
-              onChange={(event) => setForm((current) => ({ ...current, focus: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, focus: event.target.value }))
+              }
             />
           </div>
 
@@ -98,7 +112,9 @@ export default function CompareMealsPage() {
             ))}
           </div>
 
-          {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+          {error ? (
+            <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+          ) : null}
 
           <button type="submit" className="primary-button w-full" disabled={isLoading}>
             {isLoading ? "Comparing meals..." : "Compare meals"}
@@ -111,7 +127,7 @@ export default function CompareMealsPage() {
               <span className="status-chip">Comparison result</span>
               {result ? (
                 <span className="rounded-full bg-mint px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink">
-                  Winner: {result.winner}
+                  Winner: {getMealLabel(result.winner)}
                 </span>
               ) : null}
             </div>
@@ -122,25 +138,78 @@ export default function CompareMealsPage() {
                   <h2 className="text-3xl">{result.verdict}</h2>
                   <p className="mt-2 text-sm leading-6 text-ink/72">{result.recommendation}</p>
                 </div>
+
                 <div className="grid gap-3">
-                  {result.scorecard.map((item) => (
-                    <div key={item.category} className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">{item.category}</p>
-                        <span className="status-chip">{item.winner}</span>
-                      </div>
-                      <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <div className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/72">{item.meal_a}</div>
-                        <div className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/72">{item.meal_b}</div>
-                      </div>
-                    </div>
-                  ))}
+                  <div className="grid gap-3 md:grid-cols-2">
+                <div
+                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-center ${
+                    String(result?.winner || "").toLowerCase() === "meal_a"
+                      ? "border-green-200 bg-green-50 text-green-900"
+                      : String(result?.winner || "").toLowerCase() === "meal_b"
+                        ? "border-red-200 bg-red-50 text-red-900"
+                        : "border-slate-200 bg-white text-ink/60"
+                  }`}
+                >
+                  {form.meal_a.name || "Meal A"}
                 </div>
+
+                <div
+                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-center ${
+                    String(result?.winner || "").toLowerCase() === "meal_b"
+                      ? "border-green-200 bg-green-50 text-green-900"
+                      : String(result?.winner || "").toLowerCase() === "meal_a"
+                        ? "border-red-200 bg-red-50 text-red-900"
+                        : "border-slate-200 bg-white text-ink/60"
+                  }`}
+                >
+                  {form.meal_b.name || "Meal B"}
+                </div>
+              </div>
+                  {result.scorecard.map((item) => {
+                    const winner = String(item.winner || "").toLowerCase();
+
+                    const mealAState =
+                      winner === "meal_a" ? "border-green-200 bg-green-50 text-green-900" :
+                      winner === "meal_b" ? "border-red-200 bg-red-50 text-red-900" :
+                      "border-slate-200 bg-white text-ink/72";
+
+                    const mealBState =
+                      winner === "meal_b" ? "border-green-200 bg-green-50 text-green-900" :
+                      winner === "meal_a" ? "border-red-200 bg-red-50 text-red-900" :
+                      "border-slate-200 bg-white text-ink/72";
+
+                    return (
+                      <div
+                        key={item.category}
+                        className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">
+                          {item.category}
+                        </p>
+
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                          <div className={`rounded-2xl border px-4 py-3 text-sm ${mealAState}`}>
+                            {item.meal_a}
+                          </div>
+                          <div className={`rounded-2xl border px-4 py-3 text-sm ${mealBState}`}>
+                            {item.meal_b}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">Tradeoffs</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-ink/50">
+                    Tradeoffs
+                  </p>
                   <ul className="mt-3 space-y-2">
                     {result.tradeoffs.map((item) => (
-                      <li key={item} className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/75">
+                      <li
+                        key={item}
+                        className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/75"
+                      >
                         {item}
                       </li>
                     ))}
@@ -149,7 +218,8 @@ export default function CompareMealsPage() {
               </div>
             ) : (
               <p className="mt-5 text-sm leading-6 text-ink/60">
-                The winning meal, reasoning, tradeoffs, and scorecard will render here after submission.
+                The winning meal, reasoning, tradeoffs, and scorecard will render here after
+                submission.
               </p>
             )}
           </div>
