@@ -172,7 +172,7 @@ flowchart LR
 ### Prerequisites
 
 - Node.js 18+
-- Python 3.10+
+- **Python 3.10 - 3.11** (Python 3.12+ is not supported because 'imghdr' was removed)
 - OpenAI API key
 
 ### 1. Install frontend dependencies
@@ -184,7 +184,8 @@ npm install
 ### 2. Create a Python virtual environment
 
 ```bash
-python3 -m venv .venv
+# Python 3.10 or 3.11 recommended
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -210,8 +211,7 @@ You can also start from `.env.example`.
 ### 4. Run the backend
 
 ```bash
-source .venv/bin/activate
-uvicorn backend.main:app --reload --port 8000
+npm run dev:api
 ```
 
 ### 5. Run the frontend
