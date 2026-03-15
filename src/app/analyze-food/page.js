@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { postForm } from "@/lib/api";
 import { PageIntro } from "@/components/page-intro";
+import { formatNutritionLabel, getMetricVisualState } from "@/lib/nutrition-metrics";
 import { loadUserProfile } from "@/lib/user-profile";
 
 const initialState = {
@@ -17,21 +18,6 @@ const MEAL_TYPE_OPTIONS = [
   { value: "dinner", label: "Dinner" },
   { value: "snack", label: "Snack" },
 ];
-
-function formatNutritionLabel(key) {
-  const labelMap = {
-    calories: "Calories",
-    protein_g: "Protein",
-    carbs_g: "Carbs",
-    fat_g: "Fat",
-    fiber_g: "Fiber",
-    sugar_g: "Sugar",
-    sodium_mg: "Sodium",
-    saturated_fat_g: "Sat. Fat",
-  };
-
-  return labelMap[key] || key.replaceAll("_", " ");
-}
 
 function getPersonalizedDailyValues(profile) {
   const weightKg = Number(profile?.weight_kg);
@@ -141,66 +127,22 @@ function getMealCalorieTarget(dailyCalories, mealType) {
   }
 }
 
+function getMetricTarget(key, dailyValues, mealType) {
+  if (key === "calories") {
+    return getMealCalorieTarget(dailyValues?.calories || 2000, mealType);
+  }
+
+  return dailyValues?.[key] || null;
+}
+
 function getDVPercent(key, value, dailyValues, mealType) {
   const numericValue = Number(value);
   if (Number.isNaN(numericValue)) return null;
 
-  if (key === "calories") {
-    const mealCalories = getMealCalorieTarget(dailyValues?.calories || 2000, mealType);
-    if (!mealCalories) return null;
-    return (numericValue / mealCalories) * 100;
-  }
-
-  const dv = dailyValues?.[key];
+  const dv = getMetricTarget(key, dailyValues, mealType);
   if (!dv) return null;
 
   return (numericValue / dv) * 100;
-}
-
-function getNutrientTileClass(key, percent) {
-  if (percent == null) return "bg-slate-200";
-
-  const limitNutrients = ["sodium_mg", "sugar_g", "saturated_fat_g", "fat_g"];
-  const encourageNutrients = ["protein_g", "fiber_g"];
-
-  if (limitNutrients.includes(key)) {
-    if (percent >= 15) return "bg-red-200";
-    if (percent > 5) return "bg-yellow-200";
-    return "bg-green-200";
-  }
-
-  if (encourageNutrients.includes(key)) {
-    if (percent >= 15) return "bg-green-200";
-    if (percent > 5) return "bg-yellow-200";
-    return "bg-red-200";
-  }
-
-  if (percent >= 15) return "bg-red-200";
-  if (percent > 5) return "bg-yellow-200";
-  return "bg-green-200";
-}
-
-function getNutrientTextClass(key, percent) {
-  if (percent == null) return "text-ink";
-
-  const limitNutrients = ["calories", "sodium_mg", "sugar_g", "saturated_fat_g", "fat_g"];
-  const encourageNutrients = ["protein_g", "fiber_g"];
-
-  if (limitNutrients.includes(key)) {
-    if (percent >= 15) return "text-red-600";
-    if (percent > 5) return "text-yellow-700";
-    return "text-green-700";
-  }
-
-  if (encourageNutrients.includes(key)) {
-    if (percent >= 15) return "text-green-700";
-    if (percent > 5) return "text-yellow-700";
-    return "text-red-600";
-  }
-
-  if (percent >= 15) return "text-red-600";
-  if (percent > 5) return "text-yellow-700";
-  return "text-green-700";
 }
 
 export default function AnalyzeFoodPage() {
@@ -263,6 +205,13 @@ export default function AnalyzeFoodPage() {
   const caloriePercent = result
     ? getDVPercent("calories", result.estimated_nutrition?.calories, dailyValues, form.mealType)
     : null;
+  const calorieVisual = result
+    ? getMetricVisualState(
+        "calories",
+        result.estimated_nutrition?.calories,
+        getMetricTarget("calories", dailyValues, form.mealType)
+      )
+    : getMetricVisualState("calories", null, null);
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-6">
@@ -362,16 +311,13 @@ export default function AnalyzeFoodPage() {
                   <p className="text-[9pt] uppercase tracking-[0.12em] text-ink/60">
                     Calories
                   </p>
-                  <p
-                    className={`text-xl font-semibold ${getNutrientTextClass(
-                      "calories",
-                      caloriePercent
-                    )}`}
-                  >
+                  <p className={`text-xl font-semibold ${calorieVisual.textClass}`}>
                     {result.estimated_nutrition?.calories} kcal
                   </p>
                   {caloriePercent != null && (
-                    <p className="mt-1 text-xs text-ink/60">{Math.round(caloriePercent)}% meal target</p>
+                    <p className={`mt-1 text-xs ${calorieVisual.textClass}`}>
+                      {calorieVisual.label} · {Math.round(caloriePercent)}% meal target
+                    </p>
                   )}
                 </div>
               )}
@@ -388,21 +334,22 @@ export default function AnalyzeFoodPage() {
                     .filter(([key]) => key !== "calories")
                     .slice(0, 7)
                     .map(([key, value]) => {
-                      const percent = getDVPercent(key, value, dailyValues, form.mealType);
+                      const target = getMetricTarget(key, dailyValues, form.mealType);
+                      const visual = getMetricVisualState(key, value, target);
 
                       return (
                         <div
                           key={key}
-                          className={`rounded-xl px-3 py-2 ${getNutrientTileClass(key, percent)}`}
+                          className={`rounded-xl px-3 py-2 ${visual.tileClass}`}
                         >
                           <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.12em] text-ink">
                             {formatNutritionLabel(key)}
                           </p>
                           <p className="mt-1 text-xl font-semibold text-ink">{value}</p>
 
-                          {percent != null && (
+                          {visual.percent != null && (
                             <p className="mt-1 text-xs text-ink/60">
-                              {Math.round(percent)}% DV
+                              {visual.label} · {Math.round(visual.percent)}% DV
                             </p>
                           )}
                         </div>
