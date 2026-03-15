@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { postJson } from "@/lib/api";
 import { JsonPanel } from "@/components/json-panel";
 import { PageIntro } from "@/components/page-intro";
+import { formatNutritionLabel, getMetricVisualState } from "@/lib/nutrition-metrics";
 import { loadUserProfile } from "@/lib/user-profile";
 
 const defaultMeals = [
@@ -11,21 +12,6 @@ const defaultMeals = [
   { name: "Lunch", description: "", time: "12:30" },
   { name: "Dinner", description: "", time: "19:00" },
 ];
-
-function formatNutritionLabel(key) {
-  const labelMap = {
-    calories: "Calories",
-    protein_g: "Protein",
-    carbs_g: "Carbs",
-    fat_g: "Fat",
-    fiber_g: "Fiber",
-    sugar_g: "Sugar",
-    sodium_mg: "Sodium",
-    saturated_fat_g: "Sat. Fat",
-  };
-
-  return labelMap[key] || key.replaceAll("_", " ");
-}
 
 function formatGoalLabel(goal) {
   const labelMap = {
@@ -131,89 +117,6 @@ function getPersonalizedDailyValues(profile) {
   }
 
   return values;
-}
-
-function getDailyNutritionStatus(key, actualValue, targetValue) {
-  const actual = Number(actualValue);
-  const target = Number(targetValue);
-
-  if (Number.isNaN(actual) || Number.isNaN(target) || !target) {
-    return { state: "neutral", percent: null };
-  }
-
-  const percent = (actual / target) * 100;
-
-  const limitNutrients = ["sodium_mg", "sugar_g", "saturated_fat_g"];
-  const encourageNutrients = ["protein_g", "fiber_g"];
-  const targetRangeNutrients = ["calories", "carbs_g", "fat_g"];
-
-  if (limitNutrients.includes(key)) {
-    if (percent <= 50) return { state: "low", percent };
-    if (percent <= 100) return { state: "moderate", percent };
-    return { state: "high", percent };
-  }
-
-  if (encourageNutrients.includes(key)) {
-    if (percent < 75) return { state: "deficit", percent };
-    if (percent < 95) return { state: "close", percent };
-    if (percent <= 120) return { state: "enough", percent };
-    return { state: "high", percent };
-  }
-
-  if (targetRangeNutrients.includes(key)) {
-    if (percent < 75) return { state: "deficit", percent };
-    if (percent < 95) return { state: "close", percent };
-    if (percent <= 110) return { state: "in_range", percent };
-    return { state: "over", percent };
-  }
-
-  return { state: "neutral", percent };
-}
-
-function getDailyTileClass(state) {
-  switch (state) {
-    case "deficit":
-      return "bg-blue-200";
-    case "close":
-      return "bg-yellow-200";
-    case "enough":
-      return "bg-green-200";
-    case "in_range":
-      return "bg-green-200";
-    case "over":
-      return "bg-red-200";
-    case "low":
-      return "bg-green-200";
-    case "moderate":
-      return "bg-yellow-200";
-    case "high":
-      return "bg-red-200";
-    default:
-      return "bg-slate-200";
-  }
-}
-
-function getDailyStatusLabel(state) {
-  switch (state) {
-    case "deficit":
-      return "Deficit";
-    case "close":
-      return "Close";
-    case "enough":
-      return "Enough";
-    case "in_range":
-      return "In range";
-    case "over":
-      return "Over";
-    case "low":
-      return "Low";
-    case "moderate":
-      return "Moderate";
-    case "high":
-      return "High";
-    default:
-      return "";
-  }
 }
 
 export default function DailyNutritionPage() {
@@ -409,17 +312,17 @@ export default function DailyNutritionPage() {
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {Object.entries(result.total_estimated_nutrition).map(([key, value]) => {
                     const target = dailyTargets[key];
-                    const { state, percent } = getDailyNutritionStatus(key, value, target);
+                    const visual = getMetricVisualState(key, value, target);
 
                     return (
-                      <div key={key} className={`rounded-3xl p-4 ${getDailyTileClass(state)}`}>
+                      <div key={key} className={`rounded-3xl p-4 ${visual.tileClass}`}>
                         <p className="text-xs uppercase tracking-[0.16em] text-ink/60">
                           {formatNutritionLabel(key)}
                         </p>
-                        <p className="mt-2 text-2xl font-semibold text-ink">{value}</p>
-                        {percent != null ? (
-                          <p className="mt-1 text-xs text-ink/65">
-                            {getDailyStatusLabel(state)} · {Math.round(percent)}% of target
+                        <p className={`mt-2 text-2xl font-semibold ${visual.textClass}`}>{value}</p>
+                        {visual.percent != null ? (
+                          <p className={`mt-1 text-xs ${visual.textClass}`}>
+                            {visual.label} · {Math.round(visual.percent)}% of target
                           </p>
                         ) : null}
                       </div>
